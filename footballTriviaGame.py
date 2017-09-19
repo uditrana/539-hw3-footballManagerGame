@@ -4,6 +4,8 @@ import urllib.request  # request library
 
 import json  # json parsing
 
+import random
+
 # import pprint  # pretty print library, useful for printing jsons
 
 BASE_API_ADDRESS = "http://api.football-data.org/v1/"
@@ -38,8 +40,20 @@ def getJSON(param, route):
 
 def getTeamJSON(teamName):
     teamSearchParam = "?name=" + teamName
-    teamJson = getJSON(teamSearchParam, GET_ROUTE_TEAM)
-    teamID = teamJSON["ID"]
+    teamJ = getJSON(teamSearchParam, GET_ROUTE_TEAM)
+    teamID = teamJ["teams"][0]["id"]
+    return teamID
+
+
+def getPlayerList(teamID):
+    param = "%s/players" % teamID
+    playerList = getJSON(param, GET_ROUTE_TEAM)["players"]
+    playerNumberList = list()
+    for playerDict in playerList:
+        playerName, playerNumber = playerDict["name"], playerDict["jerseyNumber"]
+        playerNumberList.append((playerName, playerNumber))
+    playerNumberList.sort(key=lambda num: num[1])
+    return playerNumberList
 
 
 def main():
@@ -48,39 +62,40 @@ def main():
 
     print("Hi! This is a game where you test your knowledge of players of different teams")
 
-    while True:
+    teamName = (input(
+        "name of Team you want to get quizzed on? (type quit or Ctrl_C to quit)\n")).lower()
+
+    # did it just in case someone presses an arrow key and can't take it back
+
+    teamName = teamName.strip()
+    # teamName = teamName.replace(" ", "-")
+
+    teamName = teamName.replace(" ", "%20")
+
+    teamID = getTeamJSON(teamName)
+
+    playerNumberList = getPlayerList(teamID)
+
+    while (active):
 
         try:
-            teamName = (input(
-                "name of Team you want to get quizzed on? (type quit or Ctrl_C to quit)\n")).lower()
 
-            # did it just in case someone presses an arrow key and can't take it back
-            if (teamName.find("quit") != -1):
+            rand = random.randint(0, len(playerNumberList) - 1)
+
+            randPlayer = playerNumberList[rand]
+
+            guess = int(input("What is %s's jersey Number?" % randPlayer[0]))
+
+            if (guess == randPlayer[1]):
+                print("Nice you got it!")
+            else:
+                print("nope you were wrong!")
+
+            playerNumberList.remove(randPlayer)
+            if (len(playerNumberList) == 0):
                 break
-
-            teamName = teamName.strip()
-            # teamName = teamName.replace(" ", "-")
-
-            teamName = teamName.replace(" ", "%20")
-
-            teamJson = getTeamJSON(teamName)
-
-            # userPokemon = input("what is the name of the pokemon you have?\n")
-
-            # userPokemon = userPokemon.lower()
-
-            # # did you know that no pokemon has the substring quit in their name?
-            # if (userPokemon.find("quit") != -1):
-            #     break
-
-            # effectiveness = getTypeEffectiveness(teamName, userPokemon)
-
-            # print(getEffectivenessMessage(effectiveness))
-
         except urllib.error.HTTPError:
             print("OOPS probably misspelled something, try again!")
-
-    print("Shorts are confortable and easy to wear!!!")
 
 
 main()
